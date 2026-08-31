@@ -1,7 +1,24 @@
-import { createStart, createMiddleware } from "@tanstack/react-start";
+import { createStart } from "@tanstack/react-start";
+import type { createMiddleware as tanstackCreateMiddleware } from "@tanstack/react-start";
 
 import { renderErrorPage } from "./lib/error-page";
 import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
+
+// Import our middleware factory as a fallback for Vercel production environments
+// where the TanStack export may not be properly available
+import { createMiddleware as createMiddlewareWrapper } from "./lib/middleware-factory";
+
+// Use TanStack's createMiddleware if available, fallback to our wrapper
+let createMiddleware: typeof tanstackCreateMiddleware;
+try {
+  const tanstackMiddleware = require("@tanstack/react-start").createMiddleware;
+  createMiddleware =
+    typeof tanstackMiddleware === "function"
+      ? tanstackMiddleware
+      : createMiddlewareWrapper;
+} catch {
+  createMiddleware = createMiddlewareWrapper;
+}
 
 const errorMiddleware = createMiddleware().server(async ({ next }) => {
   try {
